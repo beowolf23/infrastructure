@@ -30,6 +30,21 @@ catalog:
         - allow: [Template]
 ```
 
+## Continuous deployment
+
+`skeleton/.github/workflows/ci.yaml` doesn't just build and push the image -
+its `update-gitops` job commits the new `sha-<commit>` tag into
+`gitops/services-values/<name>.yaml` in this repo after every successful
+build on main. That commit is what ArgoCD's `selfHeal` actually reacts to;
+pushing a new image to the same `latest` tag on its own does **not**
+trigger a redeploy, since ArgoCD only watches git, not the registry.
+
+This needs a **`GITOPS_DEPLOY_TOKEN` secret on each new service repo** - a
+GitHub PAT (classic or fine-grained) with `repo` scope on
+`beowolf23/infrastructure`, since the built-in `GITHUB_TOKEN` can only
+write to the repo its own workflow runs in. Add it under the new repo's
+Settings → Secrets and variables → Actions.
+
 ## Using it without Backstage
 
 Nothing stops you from copying `skeleton/` by hand and manually replacing

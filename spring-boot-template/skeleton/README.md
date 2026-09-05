@@ -2,7 +2,7 @@
 
 ${{ values.description }}
 
-Generated from [spring-boot-template](https://github.com/beowolf23/spring-boot-template) - Java 25, Spring Boot 4.
+Generated from [spring-boot-template](https://github.com/beowolf23/infrastructure/tree/main/spring-boot-template) - Java 25, Spring Boot 4.
 
 ## Local development
 
@@ -45,3 +45,10 @@ points Kubernetes probes at these already.
 This app is meant to be deployed via the shared `spring-boot-app` Helm
 chart in the infrastructure repo, not its own chart. See that chart's
 README for the ArgoCD Application snippet to add.
+
+CI pushes every build on main to `ghcr.io/beowolf23/${{ values.name }}` and
+then commits the new tag into the infrastructure repo's
+`gitops/services-values/${{ values.name }}.yaml` - that commit is what
+actually gets it deployed. Requires a `GITOPS_DEPLOY_TOKEN` secret on this
+repo (Settings → Secrets and variables → Actions) - a GitHub PAT with
+`repo` scope on `beowolf23/infrastructure`.

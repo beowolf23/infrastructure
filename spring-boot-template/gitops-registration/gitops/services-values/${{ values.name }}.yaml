@@ -1,6 +1,8 @@
 # ${{ values.description }}
 image:
   repository: ghcr.io/beowolf23/${{ values.name }}
-  # CI pushes both `latest` and a `sha-<commit>` tag - pin to a sha once
-  # you've had a first successful build and want reproducible deploys.
+  # CI's update-gitops job overwrites this with sha-<commit> after every
+  # successful build on main - that commit is what triggers ArgoCD's
+  # selfHeal to actually deploy it. Requires a GITOPS_DEPLOY_TOKEN secret
+  # on this repo - see spring-boot-template/README.md.
   tag: latest
