@@ -22,7 +22,14 @@ backend:
 
 auth:
   providers:
-    guest: {}
+    guest:
+      # The guest provider explicitly disables itself outside
+      # NODE_ENV=development (which the image sets to production) -
+      # without this every request comes back unauthenticated (401 on
+      # essentially every /api/catalog and /api/permission call). Fine
+      # for this single-developer dev cluster; replace with real auth
+      # (see backstage/README.md) before anyone else gets access.
+      dangerouslyAllowOutsideDevelopment: true
 
 catalog:
   locations:
