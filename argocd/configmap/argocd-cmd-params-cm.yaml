@@ -15,3 +15,10 @@ data:
   # deployment's container args directly to actually clear it.
   reposerver.client.ca.path: ""
   controller.repo.server.plaintext: "true"
+  # Same fix as the controller - argocd-server and applicationset-controller
+  # each have their own repo-server client and their own plaintext flag.
+  # Missing these causes "tls: first record does not look like a TLS
+  # handshake" whenever that component talks to repo-server (e.g. browsing
+  # a project/app in the UI).
+  server.repo.server.plaintext: "true"
+  applicationsetcontroller.repo.server.plaintext: "true"
