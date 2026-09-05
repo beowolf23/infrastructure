@@ -1,8 +1,0 @@
-crds:
-  enabled: true
-  keep: true
-replicaCount: 1
-prometheus:
-  enabled: true
-  servicemonitor:
-    enabled: true   # requires kube-prometheus-stack CRDs; hence the wave order

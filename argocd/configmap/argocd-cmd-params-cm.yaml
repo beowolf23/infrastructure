@@ -8,5 +8,10 @@ metadata:
     app.kubernetes.io/part-of: argocd
 data:
   server.insecure: "true"
-  repo.server.plaintext: "true"
+  reposerver.disable.tls: "true"
+  # Ineffective on its own - the repo-server binary's --client-ca-path flag
+  # defaults to a non-empty path regardless of this env var, which conflicts
+  # with disable-tls at startup. scripts/argocd-install.sh patches the
+  # deployment's container args directly to actually clear it.
+  reposerver.client.ca.path: ""
   controller.repo.server.plaintext: "true"
