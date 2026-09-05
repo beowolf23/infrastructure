@@ -2,8 +2,7 @@
 
 Generated skeleton for an ArgoCD app-of-apps deployment.
 
-    root ──> apps/platform.yaml ──> platform/*.yaml  ──> monitoring + tooling
-         └─> apps/services.yaml ──> services/*.yaml  ──> app workloads
+    root ──> apps/platform.yaml ──> platform/*.yaml  ──> monitoring (Prometheus + Grafana)
 
 These manifests live at `gitops/` inside `https://github.com/beowolf23/infrastructure.git`. Every
 `spec.source.path` is written relative to the REPO ROOT, not to this
@@ -34,38 +33,27 @@ subtree needs to be its own repository.
 ## Before the first sync
 
 1. Replace `https://github.com/beowolf23/infrastructure.git` if you did not pass `-r`.
-2. Bump the chart versions in each `platform/*.yaml` — the pinned values are
-   a starting point. Check with `helm search repo <chart> --versions`.
-3. Create a `ClusterSecretStore` named `cluster-secret-store` for your secrets
-   backend, or swap the ExternalSecrets for Sealed Secrets / SOPS.
-4. Decide on the root finalizer. As written, `kubectl delete app root`
+2. Bump the chart version in `platform/kube-prometheus-stack.yaml` — the
+   pinned value is a starting point. Check with
+   `helm search repo kube-prometheus-stack --versions`.
+3. Decide on the root finalizer. As written, `kubectl delete app root`
    cascades through every child and deletes their workloads.
 
 ## Sync waves
 
-    -30  external-secrets, cert-manager     (secrets + certs must exist first)
-    -25  namespaces                          (creates the services namespace)
-    -20  ingress-nginx
-    -10  kube-prometheus-stack, loki        (CRDs land here)
-     -5  tempo, alloy
-      0  observability-config, services
+    -10  kube-prometheus-stack   (CRDs land here; bundles Prometheus + Grafana)
 
 ## Adding things
 
 - New platform tool: add `platform/<name>.yaml` + `platform-values/<name>.yaml`
-- New dashboard: add a ConfigMap under `config/observability/dashboards/`
-  and list it in the kustomization
-- New service: add `services/<name>.yaml` (namespace is always `services`)
 
-## Where this outgrows itself
+## Scope
 
-A second cluster turns `platform-values/loki.yaml` into
-`platform-values/<cluster>/loki.yaml`, at which point the platform parent
-becomes an ApplicationSet with a matrix generator. Past ~30 services, a git
-files generator over `services/*/config.yaml` beats hand-written specs.
-
-The shared `services` namespace is the other thing to watch: one ResourceQuota
-covers everything, a NetworkPolicy cannot separate two apps that sit in it, and
-Service/ConfigMap names must stay globally unique. Splitting later means adding
-namespaces to `config/namespaces/` and widening the project destination — the
-Application files themselves barely change.
+This repo is intentionally minimal: just Prometheus + Grafana via
+`kube-prometheus-stack` (alertmanager, node-exporter and kube-state-metrics
+disabled in `platform-values/kube-prometheus-stack.yaml`). Grafana uses its
+own auto-generated admin credentials since there's no secrets backend wired
+up — check the `kube-prometheus-stack-grafana` secret in the `monitoring`
+namespace. Re-add cert-manager, external-secrets, ingress-nginx, logging
+(loki/alloy), tracing (tempo), or app workloads (`services/`) the same way:
+a new `platform/<name>.yaml` + `platform-values/<name>.yaml` pair.

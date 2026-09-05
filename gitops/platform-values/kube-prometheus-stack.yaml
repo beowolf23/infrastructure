@@ -1,11 +1,10 @@
-# Grafana ships inside this chart. Set enabled: false and add a standalone
-# grafana Application if you want to version it independently.
+# Minimal stack: Prometheus + Grafana only. Alertmanager, node-exporter and
+# kube-state-metrics are disabled — re-enable by removing their `enabled: false`.
 grafana:
   enabled: true
-  admin:
-    existingSecret: grafana-admin
-    userKey: admin-user
-    passwordKey: admin-password
+  # No existingSecret: external-secrets isn't deployed, so Grafana
+  # auto-generates its own admin credentials (default user "admin",
+  # random password in the kube-prometheus-stack-grafana secret).
   sidecar:
     dashboards:
       enabled: true
@@ -17,15 +16,10 @@ grafana:
       label: grafana_datasource
       labelValue: "1"
       searchNamespace: monitoring
-  ingress:
-    enabled: false   # enable once cert-manager has issued a certificate
 
 prometheus:
   prometheusSpec:
     retention: 15d
-    # Pick up ServiceMonitors from every namespace, not just ones the chart
-    # labelled itself. Without these four, ServiceMonitors in the services
-    # namespace are ignored.
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
     ruleSelectorNilUsesHelmValues: false
@@ -39,11 +33,10 @@ prometheus:
               storage: 50Gi
 
 alertmanager:
-  alertmanagerSpec:
-    storage:
-      volumeClaimTemplate:
-        spec:
-          accessModes: ["ReadWriteOnce"]
-          resources:
-            requests:
-              storage: 5Gi
+  enabled: false
+
+kube-state-metrics:
+  enabled: false
+
+prometheus-node-exporter:
+  enabled: false
