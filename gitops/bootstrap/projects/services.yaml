@@ -1,0 +1,16 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: services
+  namespace: argocd
+spec:
+  description: Application workloads, all deployed into the services namespace
+  sourceRepos:
+    - https://github.com/beowolf23/infrastructure.git
+    - https://github.com/org/*
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: services
+  # Empty whitelist: service apps cannot create CRDs, ClusterRoles, or any
+  # other cluster-scoped object — even if the manifest is committed.
+  clusterResourceWhitelist: []

@@ -1,0 +1,17 @@
+# Dashboard JSON goes in the data key. The Grafana sidecar picks this up by
+# label — adding a dashboard is one new file, no Grafana restart.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-cluster-overview
+  labels:
+    grafana_dashboard: "1"
+data:
+  cluster-overview.json: |
+    {
+      "title": "Cluster Overview",
+      "uid": "cluster-overview",
+      "schemaVersion": 39,
+      "panels": [],
+      "time": { "from": "now-6h", "to": "now" }
+    }

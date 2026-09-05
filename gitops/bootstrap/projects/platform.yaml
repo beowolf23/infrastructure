@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Platform tooling owned by the infra team
+  sourceRepos:
+    - https://github.com/beowolf23/infrastructure.git
+    - https://prometheus-community.github.io/helm-charts
+    - https://grafana.github.io/helm-charts
+    - https://charts.jetstack.io
+    - https://kubernetes.github.io/ingress-nginx
+    - https://charts.external-secrets.io
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: '*'
+  # Platform tooling ships CRDs and cluster-wide RBAC, so it needs this.
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  orphanedResources:
+    warn: true

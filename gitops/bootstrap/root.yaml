@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  annotations:
+    # Monorepo: only regenerate when something under this subtree changed.
+    argocd.argoproj.io/manifest-generate-paths: /gitops/apps
+  # Removing this finalizer means 'kubectl delete app root' leaves children
+  # (and their workloads) running. Keep it for disposable clusters, consider
+  # dropping it in production. See README.
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://github.com/beowolf23/infrastructure.git
+    targetRevision: main
+    path: gitops/apps
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    # Children are Application CRs — ArgoCD only reads them from its own
+    # namespace. Changing this silently breaks the whole pattern.
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - ApplyOutOfSyncOnly=true

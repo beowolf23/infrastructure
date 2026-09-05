@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: monitoring
+resources:
+  - datasources/loki.yaml
+  - datasources/tempo.yaml
+  - dashboards/cluster-overview.yaml
+  - rules/platform-alerts.yaml
+  - externalsecrets/grafana-admin.yaml
+  - externalsecrets/alertmanager-slack.yaml

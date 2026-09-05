@@ -1,0 +1,49 @@
+# Grafana ships inside this chart. Set enabled: false and add a standalone
+# grafana Application if you want to version it independently.
+grafana:
+  enabled: true
+  admin:
+    existingSecret: grafana-admin
+    userKey: admin-user
+    passwordKey: admin-password
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+      searchNamespace: monitoring
+    datasources:
+      enabled: true
+      label: grafana_datasource
+      labelValue: "1"
+      searchNamespace: monitoring
+  ingress:
+    enabled: false   # enable once cert-manager has issued a certificate
+
+prometheus:
+  prometheusSpec:
+    retention: 15d
+    # Pick up ServiceMonitors from every namespace, not just ones the chart
+    # labelled itself. Without these four, ServiceMonitors in the services
+    # namespace are ignored.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 50Gi
+
+alertmanager:
+  alertmanagerSpec:
+    storage:
+      volumeClaimTemplate:
+        spec:
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 5Gi
