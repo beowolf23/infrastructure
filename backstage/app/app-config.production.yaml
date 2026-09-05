@@ -6,7 +6,11 @@ app:
 
 backend:
   baseUrl: http://localhost:7007
-  listen: ':7007'
+  # No `listen:` here - the backstage/charts chart sets it itself via the
+  # APP_CONFIG_backend_listen_port env var (from containerPorts.backend),
+  # as an object (`{port: ...}`). Setting it here too as a string
+  # conflicts: "Invalid type in config for key 'backend.listen' ... got
+  # string, wanted object".
 
   # SQLite on a PersistentVolume - fine for a single-node dev cluster.
   # Move to Postgres (the `pg` client + a real Postgres instance) before
