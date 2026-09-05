@@ -86,6 +86,7 @@ grafana:
                   "label": "Prometheus",
                   "type": "datasource",
                   "query": "prometheus",
+                  "refresh": 1,
                   "current": {}
                 },
                 {
@@ -93,6 +94,7 @@ grafana:
                   "label": "Loki",
                   "type": "datasource",
                   "query": "loki",
+                  "refresh": 1,
                   "current": {}
                 },
                 {
