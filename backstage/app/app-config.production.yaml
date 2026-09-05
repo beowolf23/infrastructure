@@ -1,0 +1,28 @@
+app:
+  # No ingress in the cluster yet - reach this via
+  # `kubectl port-forward -n backstage svc/backstage 7007:7007`.
+  # Update both of these if/when a real hostname exists.
+  baseUrl: http://localhost:7007
+
+backend:
+  baseUrl: http://localhost:7007
+  listen: ':7007'
+
+  # SQLite on a PersistentVolume - fine for a single-node dev cluster.
+  # Move to Postgres (the `pg` client + a real Postgres instance) before
+  # this matters for more than one person.
+  database:
+    client: better-sqlite3
+    connection:
+      directory: /data
+
+auth:
+  providers:
+    guest: {}
+
+catalog:
+  locations:
+    - type: url
+      target: https://github.com/beowolf23/infrastructure/blob/main/spring-boot-template/template.yaml
+      rules:
+        - allow: [Template]

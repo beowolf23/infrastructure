@@ -1,0 +1,55 @@
+# Image is pushed via .github/workflows in backstage/app (or built and
+# pushed by hand - see backstage/README.md). Bump the tag on each release;
+# avoid floating on `latest` once this matters to more than one person.
+backstage:
+  image:
+    registry: ghcr.io
+    repository: beowolf23/backstage
+    tag: latest
+
+  # The image's own CMD already has these, but the chart's default
+  # `command: ["node", "packages/backend"]` overrides the image CMD
+  # entirely - args re-adds the config flags on top of that command.
+  args:
+    - --config
+    - app-config.yaml
+    - --config
+    - app-config.production.yaml
+
+  # The scaffolder's publish:github / publish:github:pull-request actions
+  # need this at runtime. Create it yourself - never commit a real token:
+  #   kubectl create secret generic backstage-github-token \
+  #     --from-literal=GITHUB_TOKEN=<a PAT with repo + workflow scope> \
+  #     -n backstage
+  extraEnvVarsSecrets:
+    - backstage-github-token
+
+  # SQLite needs somewhere durable to put its files - a generic ephemeral
+  # volume tied to the pod (not a separately-managed PVC) is enough for a
+  # single-replica, single-node setup. Move to the bundled `postgresql:`
+  # subchart below before running more than one replica.
+  extraVolumes:
+    - name: data
+      ephemeral:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 1Gi
+  extraVolumeMounts:
+    - name: data
+      mountPath: /data
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 512Mi
+    limits:
+      memory: 1Gi
+
+# Disabled - SQLite-on-a-volume is the starting point (see extraVolumes
+# above). Set enabled: true and wire backstage's database.connection at
+# `postgresql.auth.*` to move to Postgres later.
+postgresql:
+  enabled: false
