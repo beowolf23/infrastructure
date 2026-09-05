@@ -41,7 +41,7 @@ spec:
             {{- end }}
             {{- if .Values.otel.enabled }}
             - name: OTEL_SERVICE_NAME
-              value: {{ include "spring-boot-app.fullname" . | quote }}
+              value: {{ .Release.Name | quote }}
             - name: OTEL_RESOURCE_ATTRIBUTES
               value: {{ printf "service.namespace=%s" .Release.Namespace | quote }}
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
