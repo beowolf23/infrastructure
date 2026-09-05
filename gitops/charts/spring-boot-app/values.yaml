@@ -1,0 +1,76 @@
+replicaCount: 1
+
+image:
+  # Required - e.g. ghcr.io/org/my-app
+  repository: ""
+  tag: ""
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+containerPort: 8080
+
+service:
+  type: ClusterIP
+  port: 80
+
+# Extra application env vars/secrets. actuator.* and otel.* below are
+# wired in automatically - you don't need to repeat them here.
+env: {}
+envFrom: []
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+
+# Spring Boot's built-in liveness/readiness health groups. The chart sets
+# MANAGEMENT_ENDPOINT_HEALTH_PROBES_ENABLED=true so these work with zero
+# app-side config.
+probes:
+  enabled: true
+  livenessPath: /actuator/health/liveness
+  readinessPath: /actuator/health/readiness
+  port: 8080
+
+actuator:
+  enabled: true
+  # Space-separated management.endpoints.web.exposure.include value.
+  # Metrics don't need "prometheus" here - they leave via the OTel agent,
+  # not by Grafana/Prometheus scraping this endpoint.
+  exposeEndpoints: "health"
+
+# Metrics + logs via OpenTelemetry, pushed to the cluster's otel-collector,
+# which forwards metrics to Prometheus and logs to Loki. Traces are off by
+# default - flip otel.traces.enabled once a tracing backend exists.
+# javaagent.enabled is required for logs (it's what captures Logback/Log4j2
+# output and ships it via OTLP with zero app code changes) and is the
+# easiest way to get metrics too. See README.md for the Dockerfile contract
+# this depends on.
+otel:
+  enabled: true
+  endpoint: http://otel-collector.monitoring.svc.cluster.local:4317
+  protocol: grpc
+  metrics:
+    enabled: true
+  logs:
+    enabled: true
+  traces:
+    enabled: false
+  javaagent:
+    enabled: true
+    path: /otel/opentelemetry-javaagent.jar
+
+serviceAccount:
+  create: false
+  name: ""
+
+podAnnotations: {}
+podLabels: {}
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

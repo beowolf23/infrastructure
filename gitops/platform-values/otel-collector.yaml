@@ -1,0 +1,58 @@
+# Metrics + logs bridge: apps push OTLP here, this forwards metrics to
+# Prometheus's native OTLP receiver and logs to Loki's native OTLP endpoint.
+# No ServiceMonitor, no per-app scrape config, no log-shipping DaemonSet.
+# Traces are off for now (no tracing backend deployed yet) - add a `traces`
+# pipeline + a Tempo/Jaeger exporter here when that lands.
+mode: deployment
+replicaCount: 1
+
+# Core distro - smallest image, has everything this config uses
+# (otlp receiver, otlphttp exporter, batch/memory_limiter, health_check).
+image:
+  repository: otel/opentelemetry-collector
+command:
+  name: otelcol
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    memory: 256Mi
+
+# Only OTLP is actually configured below - the chart exposes jaeger/zipkin
+# ports by default regardless of config.receivers, so turn them off here too.
+ports:
+  jaeger-compact:
+    enabled: false
+  jaeger-thrift:
+    enabled: false
+  jaeger-grpc:
+    enabled: false
+  zipkin:
+    enabled: false
+
+config:
+  receivers:
+    # Not used - drop them so the collector doesn't fail its "defined but
+    # unused" validation.
+    jaeger: null
+    zipkin: null
+    prometheus: null
+  exporters:
+    debug: null
+    otlp_http/prometheus:
+      endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/otlp
+    otlp_http/loki:
+      endpoint: http://loki-gateway.monitoring.svc.cluster.local/otlp
+  service:
+    pipelines:
+      traces: null
+      metrics:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlp_http/prometheus]
+      logs:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlp_http/loki]

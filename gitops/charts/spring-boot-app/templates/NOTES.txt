@@ -1,0 +1,12 @@
+{{ include "spring-boot-app.fullname" . }} deployed.
+
+Service:      {{ include "spring-boot-app.fullname" . }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.service.port }}
+Health:       kubectl port-forward -n {{ .Release.Namespace }} svc/{{ include "spring-boot-app.fullname" . }} 8080:{{ .Values.service.port }} then curl localhost:8080{{ .Values.probes.readinessPath }}
+{{- if .Values.otel.enabled }}
+Telemetry:    OTLP -> {{ .Values.otel.endpoint }} (metrics: {{ .Values.otel.metrics.enabled }}, logs: {{ .Values.otel.logs.enabled }}, traces: {{ .Values.otel.traces.enabled }})
+{{- if not .Values.otel.javaagent.enabled }}
+NOTE: otel.javaagent.enabled is false - metrics/logs env vars are set, but
+nothing in the container will actually export them without the agent (or
+your own OTel SDK wiring). See this chart's README.md.
+{{- end }}
+{{- end }}
