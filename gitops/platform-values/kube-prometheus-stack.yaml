@@ -21,6 +21,184 @@ grafana:
       type: loki
       access: proxy
       url: http://loki-gateway.monitoring.svc.cluster.local
+  # One shared, variable-driven dashboard covering every service in the
+  # services namespace - no per-service dashboard generation needed, new
+  # services just show up in the "service" picker automatically. This is
+  # the source of truth for the dashboard JSON - Helm values can't include
+  # an external file's content, so it has to live inline here.
+  dashboards:
+    default:
+      spring-boot-service:
+        json: |
+          {
+            "title": "Spring Boot Service",
+            "uid": "spring-boot-service",
+            "tags": ["spring-boot", "otel"],
+            "schemaVersion": 39,
+            "timezone": "browser",
+            "time": { "from": "now-1h", "to": "now" },
+            "refresh": "30s",
+            "templating": {
+              "list": [
+                {
+                  "name": "datasource_prometheus",
+                  "label": "Prometheus",
+                  "type": "datasource",
+                  "query": "prometheus",
+                  "current": {}
+                },
+                {
+                  "name": "datasource_loki",
+                  "label": "Loki",
+                  "type": "datasource",
+                  "query": "loki",
+                  "current": {}
+                },
+                {
+                  "name": "service",
+                  "label": "Service",
+                  "type": "query",
+                  "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+                  "query": { "query": "label_values(jvm_memory_used_bytes, job)", "refId": "service" },
+                  "regex": "/services\\/(.+)/",
+                  "refresh": 2,
+                  "sort": 1,
+                  "multi": false,
+                  "includeAll": false,
+                  "current": {}
+                }
+              ]
+            },
+            "panels": [
+              { "type": "row", "title": "HTTP", "id": 100, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }, "collapsed": false, "panels": [] },
+              {
+                "id": 1,
+                "type": "timeseries",
+                "title": "Request rate by route",
+                "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+                "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+                "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "sum by (http_route) (rate(http_server_request_duration_seconds_count{job=\"services/$service\"}[5m]))",
+                    "legendFormat": "{{http_route}}"
+                  }
+                ]
+              },
+              {
+                "id": 2,
+                "type": "timeseries",
+                "title": "Error rate (5xx)",
+                "gridPos": { "h": 8, "w": 12, "x": 12, "y": 1 },
+                "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+                "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1, "min": 0 }, "overrides": [] },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "sum(rate(http_server_request_duration_seconds_count{job=\"services/$service\", http_response_status_code=~\"5..\"}[5m])) / sum(rate(http_server_request_duration_seconds_count{job=\"services/$service\"}[5m]))",
+                    "legendFormat": "error rate"
+                  }
+                ]
+              },
+              {
+                "id": 3,
+                "type": "timeseries",
+                "title": "Request latency (p50 / p95 / p99)",
+                "gridPos": { "h": 8, "w": 24, "x": 0, "y": 9 },
+                "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+                "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "histogram_quantile(0.50, sum by (le) (rate(http_server_request_duration_seconds_bucket{job=\"services/$service\"}[5m])))",
+                    "legendFormat": "p50"
+                  },
+                  {
+                    "refId": "B",
+                    "expr": "histogram_quantile(0.95, sum by (le) (rate(http_server_request_duration_seconds_bucket{job=\"services/$service\"}[5m])))",
+                    "legendFormat": "p95"
+                  },
+                  {
+                    "refId": "C",
+                    "expr": "histogram_quantile(0.99, sum by (le) (rate(http_server_request_duration_seconds_bucket{job=\"services/$service\"}[5m])))",
+                    "legendFormat": "p99"
+                  }
+                ]
+              },
+              { "type": "row", "title": "JVM", "id": 200, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 }, "collapsed": false, "panels": [] },
+              {
+                "id": 4,
+                "type": "timeseries",
+                "title": "Heap used vs. limit",
+                "gridPos": { "h": 8, "w": 8, "x": 0, "y": 18 },
+                "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+                "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "sum(jvm_memory_used_bytes{job=\"services/$service\", jvm_memory_type=\"heap\"})",
+                    "legendFormat": "used"
+                  },
+                  {
+                    "refId": "B",
+                    "expr": "sum(jvm_memory_limit_bytes{job=\"services/$service\", jvm_memory_type=\"heap\"})",
+                    "legendFormat": "limit"
+                  }
+                ]
+              },
+              {
+                "id": 5,
+                "type": "timeseries",
+                "title": "GC time",
+                "gridPos": { "h": 8, "w": 8, "x": 8, "y": 18 },
+                "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+                "fieldConfig": { "defaults": { "unit": "percentunit" }, "overrides": [] },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "sum by (jvm_gc_name) (rate(jvm_gc_duration_seconds_sum{job=\"services/$service\"}[5m]))",
+                    "legendFormat": "{{jvm_gc_name}}"
+                  }
+                ]
+              },
+              {
+                "id": 6,
+                "type": "timeseries",
+                "title": "Thread count",
+                "gridPos": { "h": 8, "w": 8, "x": 16, "y": 18 },
+                "datasource": { "type": "prometheus", "uid": "${datasource_prometheus}" },
+                "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "sum(jvm_thread_count{job=\"services/$service\"})",
+                    "legendFormat": "threads"
+                  }
+                ]
+              },
+              { "type": "row", "title": "Logs", "id": 300, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 }, "collapsed": false, "panels": [] },
+              {
+                "id": 7,
+                "type": "logs",
+                "title": "Logs",
+                "gridPos": { "h": 10, "w": 24, "x": 0, "y": 27 },
+                "datasource": { "type": "loki", "uid": "${datasource_loki}" },
+                "options": {
+                  "showTime": true,
+                  "showLabels": false,
+                  "wrapLogMessages": true,
+                  "sortOrder": "Descending"
+                },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "expr": "{service_name=\"$service\"} | severity_text != \"\""
+                  }
+                ]
+              }
+            ]
+          }
 
 prometheus:
   prometheusSpec:
