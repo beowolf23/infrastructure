@@ -1,8 +1,8 @@
 # ${{ values.description }}
 image:
   repository: ghcr.io/beowolf23/${{ values.name }}
-  # CI's update-gitops job overwrites this with sha-<commit> after every
-  # successful build on main - that commit is what triggers ArgoCD's
-  # selfHeal to actually deploy it. Requires a GITOPS_DEPLOY_TOKEN secret
-  # on this repo - see spring-boot-template/README.md.
+  # argocd-image-updater overwrites this with sha-<commit> after every
+  # successful build on main (see the ImageUpdater CR next to this
+  # service's Application) - that commit is what triggers ArgoCD's
+  # selfHeal to actually deploy it. No per-repo secret needed.
   tag: latest

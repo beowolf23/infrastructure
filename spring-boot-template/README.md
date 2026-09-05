@@ -20,9 +20,10 @@ generated app looks like and how to run it standalone.
   `copyWithoutRender` globs, which silently emptied every GitHub Actions
   expression (`github.actor`, `secrets.GITHUB_TOKEN`, etc.) when this was
   tried inside `skeleton/.github/`.
-- `gitops-registration/` - the small `Application` + values file the
-  template PRs into `gitops/services/` and `gitops/services-values/` for
-  each new service, deployed via `gitops/charts/spring-boot-app`.
+- `gitops-registration/` - the `Application` + `ImageUpdater` CR (see
+  Continuous deployment below) + values file the template PRs into
+  `gitops/services/` and `gitops/services-values/` for each new service,
+  deployed via `gitops/charts/spring-boot-app`.
 
 ## Registering this template in Backstage
 
@@ -39,18 +40,30 @@ catalog:
 
 ## Continuous deployment
 
-`github-workflows/.github/workflows/ci.yaml` doesn't just build and push the image -
-its `update-gitops` job commits the new `sha-<commit>` tag into
-`gitops/services-values/<name>.yaml` in this repo after every successful
-build on main. That commit is what ArgoCD's `selfHeal` actually reacts to;
-pushing a new image to the same `latest` tag on its own does **not**
-trigger a redeploy, since ArgoCD only watches git, not the registry.
+The app's own CI (`github-workflows/.github/workflows/ci.yaml`) only builds,
+tests, and pushes the image - it does **not** touch the gitops repo, and
+needs no secret beyond the default `GITHUB_TOKEN`. Pushing a new image to a
+static `latest` tag doesn't trigger a redeploy on its own (ArgoCD only
+watches git, not the registry), so a separate, centrally-run component -
+[`argocd-image-updater`](https://github.com/beowolf23/infrastructure/blob/main/gitops/platform/argocd-image-updater.yaml) -
+polls `ghcr.io/beowolf23/<name>` for the newest `sha-<commit>` tag and
+commits it into `gitops/services-values/<name>.yaml` itself. That commit is
+what ArgoCD's `selfHeal` reacts to.
 
-This needs a **`GITOPS_DEPLOY_TOKEN` secret on each new service repo** - a
-GitHub PAT (classic or fine-grained) with `repo` scope on
-`beowolf23/infrastructure`, since the built-in `GITHUB_TOKEN` can only
-write to the repo its own workflow runs in. Add it under the new repo's
-Settings → Secrets and variables → Actions.
+Per-service config for this is an `ImageUpdater` CR that
+`gitops-registration/` generates automatically alongside the `Application` -
+no manual step per new service. Image Updater itself needs two secrets
+created **once**, centrally, in the `argocd` namespace (not per service):
+
+```sh
+kubectl create secret docker-registry ghcr-pull \
+  --docker-server=ghcr.io --docker-username=beowolf23 \
+  --docker-password=<PAT with read:packages> -n argocd
+
+kubectl create secret generic git-creds \
+  --from-literal=username=beowolf23 \
+  --from-literal=password=<PAT with repo scope on this repo> -n argocd
+```
 
 ## Using it without Backstage
 

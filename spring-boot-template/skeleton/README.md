@@ -46,9 +46,9 @@ This app is meant to be deployed via the shared `spring-boot-app` Helm
 chart in the infrastructure repo, not its own chart. See that chart's
 README for the ArgoCD Application snippet to add.
 
-CI pushes every build on main to `ghcr.io/beowolf23/${{ values.name }}` and
-then commits the new tag into the infrastructure repo's
-`gitops/services-values/${{ values.name }}.yaml` - that commit is what
-actually gets it deployed. Requires a `GITOPS_DEPLOY_TOKEN` secret on this
-repo (Settings → Secrets and variables → Actions) - a GitHub PAT with
-`repo` scope on `beowolf23/infrastructure`.
+CI pushes every build on main to `ghcr.io/beowolf23/${{ values.name }}` - no
+gitops step here, no secret needed beyond the default `GITHUB_TOKEN`.
+`argocd-image-updater`, a central platform component, is what actually
+notices the new image and commits the tag into
+`gitops/services-values/${{ values.name }}.yaml`, which is what gets it
+deployed. See the infrastructure repo's `spring-boot-template/README.md`.
