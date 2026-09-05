@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: ${{ values.name }}
+
+server:
+  shutdown: graceful
+
+management:
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  endpoints:
+    web:
+      exposure:
+        # The gitops chart also sets this at deploy time - this default is
+        # only what you get running the jar directly (e.g. local dev).
+        include: health

@@ -1,0 +1,115 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: spring-boot-service
+  title: Spring Boot Service
+  description: Java 25 / Spring Boot 4 service, with health probes, OTel metrics+logs, and CI wired in.
+  tags:
+    - java
+    - spring-boot
+spec:
+  owner: platform-team
+  type: service
+
+  parameters:
+    - title: Service details
+      required: [name, description, owner]
+      properties:
+        name:
+          title: Name
+          type: string
+          description: Repo name, Maven artifactId, and Kubernetes app name (lowercase, hyphens only)
+          pattern: "^[a-z][a-z0-9-]*$"
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+        owner:
+          title: Owner
+          type: string
+          description: Owning team or user
+          ui:field: OwnerPicker
+          ui:options:
+            allowedKinds: [Group, User]
+        groupId:
+          title: Maven groupId
+          type: string
+          default: com.example
+
+    - title: Repository location
+      required: [repoUrl]
+      properties:
+        repoUrl:
+          title: Repository
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts: [github.com]
+            allowedOwners: [beowolf23]
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./skeleton
+        # CI workflow uses GitHub Actions' own ${{ }} expression syntax -
+        # exclude it from Nunjucks rendering or it gets corrupted.
+        copyWithoutRender:
+          - .github/**
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          owner: ${{ parameters.owner }}
+          groupId: ${{ parameters.groupId }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        repoUrl: ${{ parameters.repoUrl }}
+        description: ${{ parameters.description }}
+        defaultBranch: main
+
+    - id: register
+      name: Register in the catalog
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: fetch-gitops
+      name: Fetch gitops registration files
+      action: fetch:template
+      input:
+        url: ./gitops-registration
+        targetPath: gitops-pr
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          repoUrl: ${{ steps.publish.output.remoteUrl }}
+
+    - id: gitops-pr
+      name: Open a PR to deploy it
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=beowolf23&repo=infrastructure
+        branchName: add-${{ parameters.name }}
+        title: Add ${{ parameters.name }} to gitops
+        description: |
+          Registers `${{ parameters.name }}` as an ArgoCD Application using
+          the shared `spring-boot-app` chart.
+
+          Opened automatically by the spring-boot-service Backstage template.
+        sourcePath: gitops-pr
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
+      - title: Deployment PR
+        url: ${{ steps['gitops-pr'].output.remoteUrl }}

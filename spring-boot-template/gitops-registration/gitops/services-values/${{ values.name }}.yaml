@@ -1,0 +1,6 @@
+# ${{ values.description }}
+image:
+  repository: ghcr.io/beowolf23/${{ values.name }}
+  # CI pushes both `latest` and a `sha-<commit>` tag - pin to a sha once
+  # you've had a first successful build and want reproducible deploys.
+  tag: latest
