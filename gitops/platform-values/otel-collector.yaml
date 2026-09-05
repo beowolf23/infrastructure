@@ -6,6 +6,13 @@
 mode: deployment
 replicaCount: 1
 
+# Without this, Helm names the Service <release>-<chart>, i.e.
+# otel-collector-opentelemetry-collector - not otel-collector, which is
+# what the spring-boot-app chart's OTEL_EXPORTER_OTLP_ENDPOINT default
+# points at. Every service that ever shipped metrics/logs before this fix
+# was silently failing with UnknownHostException.
+fullnameOverride: otel-collector
+
 # Core distro - smallest image, has everything this config uses
 # (otlp receiver, otlphttp exporter, batch/memory_limiter, health_check).
 image:
