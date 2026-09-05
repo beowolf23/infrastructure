@@ -72,10 +72,15 @@ spec:
       selfHeal: true
 ```
 
-## What's NOT handled yet
+## Observability
 
-- **Traces**: `otel.traces.enabled` defaults to `false` - there's no tracing
-  backend in the cluster yet. Once one exists (e.g. Tempo), flip it on; the
-  agent is already capturing spans, they're just not being exported.
+Metrics, logs, and traces all leave via the OTel Java agent and land in
+Prometheus, Loki, and Tempo respectively - see the shared
+[Grafana dashboard](../../platform-values/kube-prometheus-stack.yaml)
+(`grafana.dashboards.default.spring-boot-service`), which picks up any new
+service automatically via its `$service` variable. Trace/log correlation
+is configured on the Tempo and Loki Grafana datasources - click a span's
+**Logs for this span**, or a log line's trace ID link, to jump between
+them.
 - **Ingress/HPA**: not included - add them to this chart when a real app
   needs them, rather than guessing at the shape now.

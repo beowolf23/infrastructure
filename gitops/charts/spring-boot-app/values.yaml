@@ -43,13 +43,12 @@ actuator:
   # not by Grafana/Prometheus scraping this endpoint.
   exposeEndpoints: "health"
 
-# Metrics + logs via OpenTelemetry, pushed to the cluster's otel-collector,
-# which forwards metrics to Prometheus and logs to Loki. Traces are off by
-# default - flip otel.traces.enabled once a tracing backend exists.
-# javaagent.enabled is required for logs (it's what captures Logback/Log4j2
-# output and ships it via OTLP with zero app code changes) and is the
-# easiest way to get metrics too. See README.md for the Dockerfile contract
-# this depends on.
+# Metrics + logs + traces via OpenTelemetry, pushed to the cluster's
+# otel-collector, which forwards metrics to Prometheus, logs to Loki, and
+# traces to Tempo. javaagent.enabled is required for logs (it's what
+# captures Logback/Log4j2 output and ships it via OTLP with zero app code
+# changes) and is the easiest way to get metrics/traces too. See
+# README.md for the Dockerfile contract this depends on.
 otel:
   enabled: true
   endpoint: http://otel-collector.monitoring.svc.cluster.local:4317
@@ -59,7 +58,7 @@ otel:
   logs:
     enabled: true
   traces:
-    enabled: false
+    enabled: true
   javaagent:
     enabled: true
     path: /otel/opentelemetry-javaagent.jar

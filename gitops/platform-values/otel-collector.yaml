@@ -1,8 +1,7 @@
-# Metrics + logs bridge: apps push OTLP here, this forwards metrics to
-# Prometheus's native OTLP receiver and logs to Loki's native OTLP endpoint.
-# No ServiceMonitor, no per-app scrape config, no log-shipping DaemonSet.
-# Traces are off for now (no tracing backend deployed yet) - add a `traces`
-# pipeline + a Tempo/Jaeger exporter here when that lands.
+# Metrics + logs + traces bridge: apps push OTLP here, this forwards
+# metrics to Prometheus's native OTLP receiver, logs to Loki's native
+# OTLP endpoint, and traces to Tempo's native OTLP gRPC receiver. No
+# ServiceMonitor, no per-app scrape config, no log-shipping DaemonSet.
 mode: deployment
 replicaCount: 1
 
@@ -52,9 +51,16 @@ config:
       endpoint: http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/otlp
     otlp_http/loki:
       endpoint: http://loki-gateway.monitoring.svc.cluster.local/otlp
+    # Tempo's OTLP receiver is native gRPC, not an HTTP path like
+    # Prometheus/Loki's - plain otlp exporter, not otlp_http. Its endpoint
+    # is bare host:port, no scheme - a URL prefix here is a config error
+    # (unlike the otlp_http exporters above, which do need a full URL).
+    otlp/tempo:
+      endpoint: tempo.monitoring.svc.cluster.local:4317
+      tls:
+        insecure: true
   service:
     pipelines:
-      traces: null
       metrics:
         receivers: [otlp]
         processors: [memory_limiter, batch]
@@ -63,3 +69,7 @@ config:
         receivers: [otlp]
         processors: [memory_limiter, batch]
         exporters: [otlp_http/loki]
+      traces:
+        receivers: [otlp]
+        processors: [memory_limiter, batch]
+        exporters: [otlp/tempo]

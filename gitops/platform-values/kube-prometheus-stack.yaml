@@ -19,8 +19,34 @@ grafana:
   additionalDataSources:
     - name: Loki
       type: loki
+      uid: loki
       access: proxy
       url: http://loki-gateway.monitoring.svc.cluster.local
+      jsonData:
+        # Lets a log line's trace_id field link to the matching trace in
+        # Tempo. Our logs carry trace_id as a queryable field (from the
+        # OTel Logback appender), not embedded in the message text, so
+        # this has to be a label-type matcher, not a regex-on-raw-text one.
+        derivedFields:
+          - datasourceUid: tempo
+            matcherType: label
+            matcherRegex: trace_id
+            name: TraceID
+            url: "$${__value.raw}"
+    - name: Tempo
+      type: tempo
+      uid: tempo
+      access: proxy
+      url: http://tempo.monitoring.svc.cluster.local:3200
+      jsonData:
+        tracesToLogsV2:
+          datasourceUid: loki
+          spanStartTimeShift: "-2s"
+          spanEndTimeShift: "2s"
+          filterByTraceID: true
+          filterBySpanID: false
+        serviceMap:
+          datasourceUid: prometheus
   # dashboards: alone does nothing - the chart requires this too, wiring
   # Grafana's own provisioning config to actually load whatever lands in
   # /var/lib/grafana/dashboards/<provider>/.

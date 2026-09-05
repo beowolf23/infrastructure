@@ -1,0 +1,16 @@
+# The grafana/tempo chart (single-binary mode) is marked deprecated
+# upstream, with grafana/tempo-distributed as the suggested replacement -
+# but that chart is microservices-only (distributor/ingester/querier/
+# compactor as separate deployments, no single-binary option), overkill
+# for one node. This still works fine and fits the "simple, single-node"
+# pattern the rest of this cluster uses; revisit if it's ever actually
+# pulled rather than just unmaintained.
+#
+# Filesystem-backed storage (backend: local, the chart default) - no
+# minio/S3 needed unlike Loki's chart. OTLP receiver is on by default
+# (4317/4318).
+fullnameOverride: tempo
+
+persistence:
+  enabled: true
+  size: 10Gi
