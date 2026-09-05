@@ -9,7 +9,11 @@ metadata:
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
-  project: services
+  # This is the app-of-apps parent, not a workload - it needs to create
+  # child Application CRs in the argocd namespace, which the (tightly
+  # scoped, services-namespace-only) services project doesn't allow. The
+  # children it generates use project: services themselves.
+  project: platform
   source:
     repoURL: https://github.com/beowolf23/infrastructure.git
     targetRevision: main
