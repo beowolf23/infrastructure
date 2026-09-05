@@ -5,4 +5,5 @@ image:
   # successful build on main (see the ImageUpdater CR next to this
   # service's Application) - that commit is what triggers ArgoCD's
   # selfHeal to actually deploy it. No per-repo secret needed.
-  tag: latest
+  tag: sha-e2c4ee09f39e63a2da43fd2d4f312f84bca54136
+  name: ghcr.io/beowolf23/spring-boot-app
