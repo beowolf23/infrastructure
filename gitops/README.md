@@ -2,7 +2,8 @@
 
 Generated skeleton for an ArgoCD app-of-apps deployment.
 
-    root ──> apps/platform.yaml ──> platform/*.yaml  ──> monitoring (Prometheus + Grafana)
+    root ──> apps/platform.yaml ──> platform/*.yaml  ──> monitoring (Prometheus + Grafana), OTel collector
+         └─> apps/services.yaml ──> services/*.yaml  ──> app workloads (via the spring-boot-app chart)
 
 These manifests live at `gitops/` inside `https://github.com/beowolf23/infrastructure.git`. Every
 `spec.source.path` is written relative to the REPO ROOT, not to this
@@ -41,19 +42,30 @@ subtree needs to be its own repository.
 
 ## Sync waves
 
+    -15  loki
     -10  kube-prometheus-stack   (CRDs land here; bundles Prometheus + Grafana)
+     -5  otel-collector          (needs Prometheus + Loki up first)
 
 ## Adding things
 
 - New platform tool: add `platform/<name>.yaml` + `platform-values/<name>.yaml`
+- New service: add `services/<name>.yaml` (namespace is always `services`) -
+  normally done for you by the Backstage `spring-boot-service` template,
+  which opens this as a PR after scaffolding the app repo. See
+  `gitops/charts/spring-boot-app/README.md`.
 
 ## Scope
 
-This repo is intentionally minimal: just Prometheus + Grafana via
-`kube-prometheus-stack` (alertmanager, node-exporter and kube-state-metrics
-disabled in `platform-values/kube-prometheus-stack.yaml`). Grafana uses its
-own auto-generated admin credentials since there's no secrets backend wired
-up — check the `kube-prometheus-stack-grafana` secret in the `monitoring`
-namespace. Re-add cert-manager, external-secrets, ingress-nginx, logging
-(loki/alloy), tracing (tempo), or app workloads (`services/`) the same way:
-a new `platform/<name>.yaml` + `platform-values/<name>.yaml` pair.
+Platform: Prometheus + Grafana (`kube-prometheus-stack`, with alertmanager,
+node-exporter and kube-state-metrics disabled), Loki, and an otel-collector
+that bridges OTLP from apps into both. Grafana uses its own auto-generated
+admin credentials since there's no secrets backend wired up - check the
+`kube-prometheus-stack-grafana` secret in the `monitoring` namespace.
+
+Not (yet) present: cert-manager, external-secrets, ingress-nginx, tracing
+(no backend deployed - the otel-collector's traces pipeline is a no-op).
+Re-add any of these as `platform/<name>.yaml` + `platform-values/<name>.yaml`.
+
+Services deploy through `gitops/charts/spring-boot-app`, a generic chart
+shared by every app - see its README for the Dockerfile/OTel contract new
+services need to follow.

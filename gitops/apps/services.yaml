@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: services
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/manifest-generate-paths: /gitops/services
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: services
+  source:
+    repoURL: https://github.com/beowolf23/infrastructure.git
+    targetRevision: main
+    path: gitops/services
+    directory:
+      recurse: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      # Starts empty until the first service is onboarded (e.g. via the
+      # Backstage template) - unlike platform, an empty result here is
+      # expected, not a sign something broke.
+      allowEmpty: true
