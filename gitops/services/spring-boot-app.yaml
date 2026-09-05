@@ -1,0 +1,51 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: spring-boot-app
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: services
+  source:
+    repoURL: https://github.com/beowolf23/infrastructure.git
+    targetRevision: main
+    path: gitops/charts/spring-boot-app
+    helm:
+      valueFiles:
+        - ../../services-values/spring-boot-app.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: services
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+---
+# Polls ghcr.io for a newer sha-<commit> tag and commits it into
+# services-values/spring-boot-app.yaml itself - this is what actually
+# triggers ArgoCD's selfHeal on this app after each successful CI build.
+# The services AppProject can't create resources outside its
+# namespace/kind whitelist, so this lives in the same file as the
+# Application above but is applied by the "services" app-of-apps parent
+# itself (project: platform), not by the Application it's next to.
+apiVersion: argocd-image-updater.argoproj.io/v1alpha1
+kind: ImageUpdater
+metadata:
+  name: spring-boot-app
+  namespace: argocd
+spec:
+  applicationRefs:
+    - namePattern: "spring-boot-app"
+      images:
+        - alias: "spring-boot-app"
+          imageName: "ghcr.io/beowolf23/spring-boot-app"
+          commonUpdateSettings:
+            updateStrategy: "newest-build"
+            allowTags: "regexp:^sha-"
+      writeBackConfig:
+        method: "git:secret:git-creds"
+        gitConfig:
+          writeBackTarget: "helmvalues:../../services-values/spring-boot-app.yaml"
