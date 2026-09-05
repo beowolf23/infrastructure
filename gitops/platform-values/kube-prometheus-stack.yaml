@@ -35,8 +35,11 @@ prometheus:
 alertmanager:
   enabled: false
 
-kube-state-metrics:
+# These two conditions live on the parent chart (camelCase), separate from
+# the kube-state-metrics:/prometheus-node-exporter: subchart passthrough
+# blocks, which have no enabled field of their own.
+kubeStateMetrics:
   enabled: false
 
-prometheus-node-exporter:
+nodeExporter:
   enabled: false
