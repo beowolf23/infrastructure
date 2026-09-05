@@ -5,4 +5,5 @@ image:
   # successful build on main (see the ImageUpdater CR next to this
   # service's Application) - that commit is what triggers ArgoCD's
   # selfHeal to actually deploy it. No per-repo secret needed.
-  tag: latest
+  tag: sha-890eed308c0e123223b5073a5c7d8b9bbad9a470
+  name: ghcr.io/beowolf23/kafka-producer
