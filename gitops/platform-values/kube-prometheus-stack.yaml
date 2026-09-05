@@ -21,6 +21,21 @@ grafana:
       type: loki
       access: proxy
       url: http://loki-gateway.monitoring.svc.cluster.local
+  # dashboards: alone does nothing - the chart requires this too, wiring
+  # Grafana's own provisioning config to actually load whatever lands in
+  # /var/lib/grafana/dashboards/<provider>/.
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: default
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
   # One shared, variable-driven dashboard covering every service in the
   # services namespace - no per-service dashboard generation needed, new
   # services just show up in the "service" picker automatically. This is
