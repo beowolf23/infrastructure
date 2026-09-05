@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: test
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: services
+  source:
+    repoURL: https://github.com/beowolf23/infrastructure.git
+    targetRevision: main
+    path: gitops/charts/spring-boot-app
+    helm:
+      valueFiles:
+        - ../../services-values/test.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: services
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

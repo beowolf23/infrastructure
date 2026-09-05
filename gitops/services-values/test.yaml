@@ -1,0 +1,8 @@
+# test app
+image:
+  repository: ghcr.io/beowolf23/test
+  # CI's update-gitops job overwrites this with sha-<commit> after every
+  # successful build on main - that commit is what triggers ArgoCD's
+  # selfHeal to actually deploy it. Requires a GITOPS_DEPLOY_TOKEN secret
+  # on this repo - see spring-boot-template/README.md.
+  tag: latest
