@@ -53,16 +53,23 @@ spec:
       action: fetch:template
       input:
         url: ./skeleton
-        # CI workflow uses GitHub Actions' own ${{ }} expression syntax -
-        # exclude it from Nunjucks rendering or it gets corrupted.
-        copyWithoutRender:
-          - .github/**
         values:
           name: ${{ parameters.name }}
           description: ${{ parameters.description }}
           owner: ${{ parameters.owner }}
           groupId: ${{ parameters.groupId }}
           destination: ${{ parameters.repoUrl | parseRepoUrl }}
+
+    # ci.yaml uses GitHub Actions' own ${{ }} expression syntax. fetch:template
+    # renders every ${{ }} it finds regardless of copyWithoutRender globs (it
+    # silently emptied github.actor/secrets.GITHUB_TOKEN/etc. in testing), so
+    # this lives in its own directory fetched with fetch:plain, which never
+    # runs any templating engine at all.
+    - id: fetch-workflows
+      name: Fetch CI workflow
+      action: fetch:plain
+      input:
+        url: ./github-workflows
 
     - id: publish
       name: Publish to GitHub

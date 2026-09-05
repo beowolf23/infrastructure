@@ -9,10 +9,17 @@ generated app looks like and how to run it standalone.
 ## Structure
 
 - `template.yaml` - the Backstage `Template` manifest (parameters + steps).
-- `skeleton/` - what gets copied into a new service repo: pom.xml, source,
-  Dockerfile, CI, and `catalog-info.yaml`. Contains Nunjucks placeholders
-  (`${{ values.name }}` etc.) that Backstage fills in - it's not meant to
-  be built as-is from this location.
+- `skeleton/` - what gets copied into a new service repo via `fetch:template`:
+  pom.xml, source, Dockerfile, and `catalog-info.yaml`. Contains Nunjucks
+  placeholders (`${{ values.name }}` etc.) that Backstage fills in - it's
+  not meant to be built as-is from this location.
+- `github-workflows/.github/workflows/ci.yaml` - fetched separately via
+  `fetch:plain` (not `fetch:template`), which never runs any templating
+  engine. It has to live outside `skeleton/`: `fetch:template` renders
+  every `${{ }}` it finds in the whole tree regardless of
+  `copyWithoutRender` globs, which silently emptied every GitHub Actions
+  expression (`github.actor`, `secrets.GITHUB_TOKEN`, etc.) when this was
+  tried inside `skeleton/.github/`.
 - `gitops-registration/` - the small `Application` + values file the
   template PRs into `gitops/services/` and `gitops/services-values/` for
   each new service, deployed via `gitops/charts/spring-boot-app`.
@@ -32,7 +39,7 @@ catalog:
 
 ## Continuous deployment
 
-`skeleton/.github/workflows/ci.yaml` doesn't just build and push the image -
+`github-workflows/.github/workflows/ci.yaml` doesn't just build and push the image -
 its `update-gitops` job commits the new `sha-<commit>` tag into
 `gitops/services-values/<name>.yaml` in this repo after every successful
 build on main. That commit is what ArgoCD's `selfHeal` actually reacts to;
