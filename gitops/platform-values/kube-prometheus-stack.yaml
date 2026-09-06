@@ -72,6 +72,16 @@ grafana:
   # - liveness/readiness probes fire every ~5s per pod and otherwise fill
   # every row of a most-recent-first, limit-20 search within minutes,
   # burying whatever real request you actually wanted to look at.
+  #
+  # That panel is type "table", not "traces" - Grafana's built-in "traces"
+  # panel renders one trace's span waterfall (TraceView) and requires
+  # data.series[0] to transform into a single trace; fed a multi-row
+  # search result instead, the transform fails and it always shows "No
+  # data found in response" even though the query itself returned rows
+  # (confirmed against TracesPanel.tsx). "table" is what Tempo's search
+  # response is actually built for (preferredVisualisationType: 'table'
+  # in resultTransformer.ts), and gets a clickable Trace ID column into
+  # the waterfall for free.
   dashboards:
     default:
       spring-boot-service:
@@ -256,7 +266,7 @@ grafana:
               { "type": "row", "title": "Traces", "id": 400, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 }, "collapsed": false, "panels": [] },
               {
                 "id": 8,
-                "type": "traces",
+                "type": "table",
                 "title": "Recent traces (click a row to open the waterfall)",
                 "gridPos": { "h": 10, "w": 24, "x": 0, "y": 38 },
                 "datasource": { "type": "tempo", "uid": "${datasource_tempo}" },
