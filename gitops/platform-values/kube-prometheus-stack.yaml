@@ -67,6 +67,11 @@ grafana:
   # services just show up in the "service" picker automatically. This is
   # the source of truth for the dashboard JSON - Helm values can't include
   # an external file's content, so it has to live inline here.
+  #
+  # The Traces panel's TraceQL query excludes name="GET /actuator/health/**"
+  # - liveness/readiness probes fire every ~5s per pod and otherwise fill
+  # every row of a most-recent-first, limit-20 search within minutes,
+  # burying whatever real request you actually wanted to look at.
   dashboards:
     default:
       spring-boot-service:
@@ -259,7 +264,7 @@ grafana:
                   {
                     "refId": "A",
                     "queryType": "traceql",
-                    "query": "{resource.service.name=\"$service\"} | select(status)",
+                    "query": "{resource.service.name=\"$service\" && name != \"GET /actuator/health/**\"} | select(status)",
                     "tableType": "traces",
                     "limit": 20
                   }
