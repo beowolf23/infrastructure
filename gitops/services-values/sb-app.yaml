@@ -1,0 +1,8 @@
+# sb-app
+image:
+  repository: ghcr.io/beowolf23/sb-app
+  # argocd-image-updater overwrites this with sha-<commit> after every
+  # successful build on main (see the ImageUpdater CR next to this
+  # service's Application) - that commit is what triggers ArgoCD's
+  # selfHeal to actually deploy it. No per-repo secret needed.
+  tag: latest
