@@ -14,3 +14,29 @@ fullnameOverride: tempo
 persistence:
   enabled: true
   size: 10Gi
+
+tempo:
+  # Turns received spans into RED metrics (request rate/errors/duration per
+  # edge) and pushes them to Prometheus - this is what actually populates
+  # the "Service Graph" tab Grafana shows when you open a trace (wired via
+  # the Tempo datasource's serviceMap.datasourceUid in
+  # kube-prometheus-stack.yaml). Without this the tab is just empty - it
+  # isn't derived from raw spans by Grafana, Tempo has to generate it.
+  metricsGenerator:
+    enabled: true
+    # Prometheus's classic remote_write endpoint - separate from the
+    # otlp-write-receiver already enabled for the collector's metrics
+    # pipeline. Requires prometheus.prometheusSpec.enableRemoteWriteReceiver
+    # in kube-prometheus-stack.yaml, since remote_write isn't the same
+    # feature as the OTLP write path.
+    remoteWriteUrl: "http://kube-prometheus-stack-prometheus.monitoring.svc.cluster.local:9090/api/v1/write"
+  # Enabling metricsGenerator above only starts the component - it still
+  # needs to be turned on for spans to actually be routed to it.
+  # span-metrics gives per-service/route RED metrics; service-graphs gives
+  # the caller->callee edges for the Service Graph tab.
+  overrides:
+    defaults:
+      metrics_generator:
+        processors:
+          - service-graphs
+          - span-metrics

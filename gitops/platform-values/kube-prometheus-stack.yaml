@@ -98,6 +98,14 @@ grafana:
                   "current": {}
                 },
                 {
+                  "name": "datasource_tempo",
+                  "label": "Tempo",
+                  "type": "datasource",
+                  "query": "tempo",
+                  "refresh": 1,
+                  "current": {}
+                },
+                {
                   "name": "service",
                   "label": "Service",
                   "type": "query",
@@ -239,6 +247,23 @@ grafana:
                     "expr": "{service_name=\"$service\"} | severity_text != \"\""
                   }
                 ]
+              },
+              { "type": "row", "title": "Traces", "id": 400, "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 }, "collapsed": false, "panels": [] },
+              {
+                "id": 8,
+                "type": "traces",
+                "title": "Recent traces (click a row to open the waterfall)",
+                "gridPos": { "h": 10, "w": 24, "x": 0, "y": 38 },
+                "datasource": { "type": "tempo", "uid": "${datasource_tempo}" },
+                "targets": [
+                  {
+                    "refId": "A",
+                    "queryType": "traceql",
+                    "query": "{resource.service.name=\"$service\"} | select(status)",
+                    "tableType": "traces",
+                    "limit": 20
+                  }
+                ]
               }
             ]
           }
@@ -254,6 +279,10 @@ prometheus:
     # /api/v1/otlp/v1/metrics instead of Prometheus scraping it.
     enableFeatures:
       - otlp-write-receiver
+    # Separate from the OTLP path above - this is Prometheus's classic
+    # remote_write receiver (/api/v1/write), which is what Tempo's
+    # metrics-generator speaks (see tempo.yaml's tempo.metricsGenerator).
+    enableRemoteWriteReceiver: true
     storageSpec:
       volumeClaimTemplate:
         spec:
